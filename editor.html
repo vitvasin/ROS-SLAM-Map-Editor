@@ -8,8 +8,8 @@
   <title>Online ROS2 SLAM Map Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap 4 + Font Awesome 4.7 -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/font-awesome.min.css">
   <style>
     body{background:#111;color:#eee}
     .toolbar{position:sticky;top:0;z-index:10;background:#1b1b1b;border-bottom:1px solid #333}
@@ -73,10 +73,17 @@
 	}
 	/* Prevent selection of UI panels */
 	.noselect {
-	  -webkit-user-select: none; /* Safari */
-	  user-select: none; /* Non-prefixed version, 
-							supported by all other modern browsers */
+	  -webkit-user-select: none;
+	  user-select: none;
 	}
+    /* Touch-friendly button sizing */
+    .toolbar .btn { min-height: 52px !important; font-size: 1.05rem !important; padding: 10px 16px !important; }
+    .toolbar .btn-group .btn { min-height: 52px !important; padding: 10px 14px !important; }
+    .toolbar input[type="range"] { height: 40px; cursor: pointer; vertical-align: middle; -webkit-appearance: none; background: transparent; }
+    .toolbar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 36px; height: 36px; margin-top: -14px; background: #17a2b8; border-radius: 50%; }
+    .toolbar input[type="range"]::-webkit-slider-runnable-track { height: 8px; background: #444; border-radius: 4px; }
+    .toolbar label { font-size: 1.05rem; }
+    #canvasWrap { transform-origin: center; }
   </style>
 </head>
 <body>
@@ -85,32 +92,36 @@
     <div class="form-row align-items-center">
       <div class="col-auto pb-2">
         <input type="file" id="yamlInput" accept=".yaml,.yml" class="d-none">
-        <button class="btn btn-sm btn-outline-info" id="btnLoadYaml"><i class="fa fa-file-text-o"></i> Load YAML</button>
+        <button class="btn btn-outline-info" id="btnLoadYaml"><i class="fa fa-file-text-o"></i> Load YAML</button>
         <span id="yamlName" class="small-note ml-2">No YAML</span>
       </div>
       <div class="col-auto pb-2">
         <input type="file" id="pgmInput" accept=".pgm" class="d-none">
-        <button class="btn btn-sm btn-outline-info" id="btnLoadPgm"><i class="fa fa-picture-o"></i> Load PGM</button>
+        <button class="btn btn-outline-info" id="btnLoadPgm"><i class="fa fa-picture-o"></i> Load PGM</button>
         <span id="pgmName" class="small-note ml-2">No PGM</span>
 		<span id="maskName" class="small-note ml-2">No Keepout</span>
       </div>
 	  
       <!-- Zoom / Undo-Redo -->
       <div class="col-auto pb-2">
-        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+        <div class="btn-group btn-group" role="group" aria-label="Zoom">
           <button class="btn btn-outline-light" id="zoomOut" title="Zoom Out (−)"><i class="fa fa-search-minus"></i></button>
           <button class="btn btn-outline-light" id="zoomIn" title="Zoom In (+)"><i class="fa fa-search-plus"></i></button>
           <button class="btn btn-outline-light" id="zoomReset" title="Reset Zoom"><i class="fa fa-compress"></i></button>
         </div>
-        <div class="btn-group btn-group-sm ml-2" role="group">
+        <div class="btn-group btn-group ml-2" role="group">
           <button class="btn btn-outline-warning" id="btnUndo" title="Undo (Ctrl+Z)"><i class="fa fa-undo"></i></button>
           <button class="btn btn-outline-warning" id="btnRedo" title="Redo (Ctrl+Y / Shift+Z)"><i class="fa fa-repeat"></i></button>
         </div>
+        <label class="mb-0 mx-1"><i class="fa fa-refresh"></i></label>
+        <input type="range" id="rotSlider" min="-180" max="180" value="0" style="width:110px">
+        <span id="rotLabel" class="small-note mx-1" style="min-width:38px;display:inline-block">0°</span>
+        <button class="btn btn-secondary" id="btnRotReset" title="Reset rotation">&#8635;</button>
       </div>
 
       <!-- Target (which layer / action) -->
       <div class="col-auto pb-2">
-        <div class="btn-group btn-group-sm" role="group" aria-label="Tools">
+        <div class="btn-group btn-group" role="group" aria-label="Tools">
           <button class="btn btn-outline-light tool-btn" data-tool="paint" title="Paint Walls (occupied)"><i class="fa fa-paint-brush"></i> Wall</button>
           <button class="btn btn-outline-light tool-btn" data-tool="erase" title="Erase Map + Keepout"><i class="fa fa-eraser"></i> Erase</button>
 		  <button class="btn btn-outline-light tool-btn" data-tool="unscan" title="Mark as unknown (un-scanned)"><i class="fa fa-minus-square-o"></i> Un-Scan</button>
@@ -120,7 +131,7 @@
 
       <!-- Shape Group -->
       <div class="col-auto pb-2">
-        <div class="btn-group btn-group-sm" role="group" aria-label="Shape">
+        <div class="btn-group btn-group" role="group" aria-label="Shape">
           <button class="btn btn-outline-light shape-btn" data-shape="freehand" title="Freehand"><i class="fa fa-pencil"></i></button>
           <button class="btn btn-outline-light shape-btn" data-shape="line" title="Line"><i class="fa fa-minus"></i></button>
           <button class="btn btn-outline-light shape-btn" data-shape="rect" title="Rectangle"><i class="fa fa-square-o"></i></button>
@@ -157,8 +168,10 @@
 
 	  <!-- Download Files -->
       <div class="col-auto pb-2">
-        <button class="btn btn-sm btn-success" id="btnDownloadMap"><i class="fa fa-download"></i> Download Map</button>
-        <button class="btn btn-sm btn-warning" id="btnDownloadMask"><i class="fa fa-download"></i> Download Keepout Mask</button>
+        <button class="btn btn-success" id="btnDownloadMap"><i class="fa fa-download"></i> Download Map</button>
+        <button class="btn btn-warning" id="btnDownloadMask"><i class="fa fa-save"></i> Save Keepout</button>
+        <button class="btn btn-info" id="btnLoadKeepout"><i class="fa fa-eye"></i> Load Saved Keepout</button>
+        <button class="btn btn-danger ml-3" id="btnClose"><i class="fa fa-times"></i> Close</button>
       </div>
 
       <div class="col small-note ml-auto text-right pb-2">
@@ -218,9 +231,9 @@
 </div>
 
 <!-- jQuery + Bootstrap 4 + js-yaml -->
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+<script src="/vendor/jquery.min.js"></script>
+<script src="/vendor/bootstrap.bundle.min.js"></script>
+<script src="/vendor/js-yaml.min.js"></script>
 
 <script>
 (function(){
@@ -229,14 +242,15 @@
   let pgm = null, pgmName = 'map.pgm';
   let mask = null; // Uint8ClampedArray (0=keepout, 255=no keepout)
 
-  let tool = 'paint';               // target: 'paint' | 'erase' | 'mask'
-  let shape = 'freehand';           // 'freehand' | 'line' | 'rect'
+  let tool = 'mask';                // target: 'paint' | 'erase' | 'mask'
+  let shape = 'rect';               // 'freehand' | 'line' | 'rect'
   let drawing = false;
   let previewing = false;
   let brush = 8;
   let zoom = 1, ZMIN=0.25, ZMAX=8, ZSTEP=1.25;
   
   let maskName = 'No Keepout';      // track which mask file is loaded
+  let viewRotDeg = 0;               // visual-only CSS rotation; pixels stay in original SLAM orientation
   
   // filename helpers
   const isYaml = name => /\.ya?ml$/i.test(name);
@@ -265,7 +279,8 @@
     clearPreview();
   });
   
-  $('#filledRect').prop('checked', false);
+  $('#filledRect').prop('checked', true);
+  filledRect = true;
 
   // ===== Elements =====
   const $yamlName = $('#yamlName'), $pgmName = $('#pgmName');
@@ -277,21 +292,20 @@
   const prevCtx = previewCanvas.getContext('2d');
   const brushCursor = document.getElementById('brushCursor');
   const viewport = document.getElementById('viewport');
-  const canvasWrap = document.getElementById('canvasWrap');
 
   // ===== UI Handlers =====
   $('.tool-btn').on('click', function(){
     $('.tool-btn').removeClass('active'); $(this).addClass('active');
     tool = $(this).data('tool');
   });
-  $('.tool-btn[data-tool="paint"]').addClass('active');
+  $('.tool-btn[data-tool="mask"]').addClass('active');
 
   $('.shape-btn').on('click', function(){
     $('.shape-btn').removeClass('active'); $(this).addClass('active');
     shape = $(this).data('shape');
     clearPreview();
   });
-  $('.shape-btn[data-shape="freehand"]').addClass('active');
+  $('.shape-btn[data-shape="rect"]').addClass('active');
 
   $('#brushSize').on('input change', function(){
     brush = parseInt(this.value,10);
@@ -313,7 +327,7 @@
   // Zoom controls
   $('#zoomIn').on('click', ()=> setZoom(Math.min(ZMAX, zoom*ZSTEP)));
   $('#zoomOut').on('click', ()=> setZoom(Math.max(ZMIN, zoom/ZSTEP)));
-  $('#zoomReset').on('click', ()=> setZoom(1));
+  $('#zoomReset').on('click', ()=> fitZoom());
 
   // Undo/Redo
   $('#btnUndo').on('click', undo);
@@ -366,6 +380,14 @@
     updateBrushCursorSize();
   }
   
+  function fitZoom(){
+    if(!pgm) return;
+    const vw = viewport.clientWidth  || viewport.offsetWidth;
+    const vh = viewport.clientHeight || viewport.offsetHeight;
+    const z = Math.min(vw / pgm.width, vh / pgm.height);
+    setZoom(Math.max(ZMIN, Math.min(ZMAX, z)));
+  }
+
   // ===== Canvas focused zoom helper using Shift+Scroll =====
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
   
@@ -457,8 +479,8 @@
   mapCanvas.addEventListener('touchstart', e=>{
     if(!pgm) return;
     e.preventDefault();
-    const t = e.touches[0], rect = mapCanvas.getBoundingClientRect();
-    const x = t.clientX - rect.left, y = t.clientY - rect.top;
+    const t = e.touches[0];
+    const [x, y] = screenToLocal(t.clientX, t.clientY);
     moveBrushCursor(e);
     startDrawing(x, y);
   }, {passive:false});
@@ -466,8 +488,7 @@
     if(!pgm) return;
     e.preventDefault();
     const t = e.touches[0];
-    const rect = mapCanvas.getBoundingClientRect();
-    const x = t.clientX - rect.left, y = t.clientY - rect.top;
+    const [x, y] = screenToLocal(t.clientX, t.clientY);
     moveBrushCursor(e);
     if(drawing && shape==='freehand'){ paintAt(x, y); }
     else if(previewing && (shape==='line' || shape==='rect' || shape==='measure')){
@@ -501,11 +522,10 @@
     } else if(previewing){
       previewing = false;
 	  // commit line/rect
-      const rect = mapCanvas.getBoundingClientRect();
       let ex, ey;
       if(e && typeof e.clientX === 'number'){
-        ex = e.clientX - rect.left; ey = e.clientY - rect.top;
-      } else { 
+        [ex, ey] = screenToLocal(e.clientX, e.clientY);
+      } else {
 		// if touchend or mouseup without coordinates, keep last previewed pos
 		ex = lastPreviewX ?? sx; ey = lastPreviewY ?? sy;
       }
@@ -1097,17 +1117,114 @@
     dlText(buildUpdatedYaml(outPgm), outYaml, 'text/yaml');
   });
 
-  $('#btnDownloadMask').on('click', ()=>{
+  $('#btnDownloadMask').on('click', async ()=>{
     if(!pgm || !yamlObj || !mask){ alert('Load YAML and PGM first.'); return; }
     const m = { magic:'P5', width: pgm.width, height: pgm.height, maxval: 255, pixels: mask };
     const maskBytes = encodePGM(m);
-    const base = (pgmName||'map.pgm').replace(/\.pgm$/i,'');
-    const outMaskPgm = base + '_keepout.pgm';
-    const outMaskYaml = base + '_keepout.yaml';
-    const y = Object.assign({}, yamlObj, { image: outMaskPgm });
-    dlBytes(maskBytes, outMaskPgm, 'image/x-portable-graymap');
-    dlText(jsyaml.dump(y), outMaskYaml, 'text/yaml');
+    const y = Object.assign({}, yamlObj, { image: 'latest_map_keepout.pgm' });
+    // encode PGM bytes to base64
+    let binary = '';
+    const bytes = new Uint8Array(maskBytes);
+    for(let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const pgmB64 = btoa(binary);
+    try{
+      const resp = await fetch('/api/save_keepout', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pgm: pgmB64, yaml: jsyaml.dump(y) })
+      });
+      if(resp.ok){ alert('Saved: latest_map_keepout.pgm and latest_map_keepout.yaml'); }
+      else{ alert('Save failed (server error).'); }
+    }catch(e){
+      alert('Save failed: ' + e.message);
+    }
   });
+
+  // ===== CSS visual rotation (pixels never change; SLAM base map stays unmodified) =====
+  const canvasWrap = document.getElementById('canvasWrap');
+
+  function screenToLocal(screenX, screenY){
+    // Convert screen coords to mapCanvas-local coords accounting for CSS rotation.
+    // Uses center of mapCanvas as rotation origin.
+    const rect = mapCanvas.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const rad = -viewRotDeg * Math.PI / 180;
+    const dx = screenX - cx, dy = screenY - cy;
+    return [
+      dx * Math.cos(rad) - dy * Math.sin(rad) + mapCanvas.width  / 2,
+      dx * Math.sin(rad) + dy * Math.cos(rad) + mapCanvas.height / 2
+    ];
+  }
+
+  function setViewRotation(deg){
+    viewRotDeg = deg;
+    canvasWrap.style.transform = deg === 0 ? '' : `rotate(${deg}deg)`;
+    $('#rotLabel').text(Math.round(deg) + '°');
+    $('#rotSlider').val(deg);
+  }
+
+  $('#rotSlider').on('input', function(){ setViewRotation(+this.value); });
+  $('#btnRotReset').on('click', () => { setViewRotation(0); });
+  $('#btnClose').on('click', () => fetch('/api/shutdown').catch(()=>{}));
+
+  // ===== Load saved keepout overlay =====
+  $('#btnLoadKeepout').on('click', async ()=>{
+    if(!pgm){ alert('Base map not loaded yet.'); return; }
+    let data;
+    try{
+      const resp = await fetch('/api/load_keepout');
+      data = await resp.json();
+      if(!resp.ok || data.error){
+        alert('No saved keepout found. Save one first.');
+        return;
+      }
+    }catch(e){
+      alert('Failed to load keepout: ' + e.message);
+      return;
+    }
+    const bin = atob(data.pgm);
+    const u8 = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    loadKeepoutPGM(data.pgm_name, u8);
+  });
+
+  // ===== Auto-load latest_map on startup =====
+  async function autoLoadMap(){
+    let data;
+    try{
+      const resp = await fetch('/api/load_map');
+      data = await resp.json();
+      if(!resp.ok || data.error){
+        alert('Please create map before editing.');
+        return;
+      }
+    }catch(e){
+      alert('Please create map before editing.');
+      return;
+    }
+    // Load YAML
+    try{
+      const yobj = jsyaml.load(data.yaml);
+      yamlText = data.yaml;
+      yamlObj = yobj;
+      yamlName = data.yaml_name;
+      $('#yamlPreview').text(data.yaml);
+      $yamlName.text(data.yaml_name);
+      updateDebug();
+    }catch(e){
+      alert('YAML parse error: ' + e.message);
+      return;
+    }
+    // Load PGM (base64 → Uint8Array)
+    const bin = atob(data.pgm);
+    const u8 = new Uint8Array(bin.length);
+    for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    loadBasePGM(data.pgm_name, u8);
+    requestAnimationFrame(fitZoom);
+  }
+  autoLoadMap();
+
 
 })();
 </script>
