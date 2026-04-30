@@ -1,56 +1,63 @@
-# ROS SLAM Map Editor
-A web-based map editor for quick editing of ROS and ROS2 SLAM maps
+# ROS SLAM Map Editor (Modified Version)
+
+A web-based map editor for quick editing of ROS and ROS2 SLAM maps. This is a modified version of the original tool by Dominick Lee, enhanced with additional features for local robotic workflows.
 
 ## Overview
-This repository provides a web-based map editor designed specifically for quick and convenient editing of ROS and ROS2 SLAM maps, such as those created in the popular [`slam_toolbox`](https://github.com/SteveMacenski/slam_toolbox). As the ROS2 ecosystem never had a native tool for this purpose, a significant gap existed in the workflow of many robotics developers and researchers. Instead of command lines or image editors, this is a hassle-free, open-source tool that enables engineers and researchers to fine-tune their SLAM maps right inside a modern browser, as well as create Keep-out zones using a mask-filter overlay.
-
-The map editor can be thought of as a specialized paint tool, allowing users to effortlessly modify and refine their maps with precision. With this tool, users can add, remove, or modify map features, such as walls, obstacles, and other elements (e.g. furniture changes in a building), to create a more accurate and reliable representation of their environment. This tool helps users achieve what would normally take longer with a 3rd party image editor.
+This repository provides a web-based map editor designed specifically for quick and convenient editing of ROS and ROS2 SLAM maps, such as those created in the popular [`slam_toolbox`](https://github.com/SteveMacenski/slam_toolbox). 
 
 ![Screenshot](img/screenshot-main.png)
 
+## Modifications & Enhancements
+This version includes the following improvements over the [original repository](https://github.com/GyroPalm/ROS-SLAM-Map-Editor):
+
+- **Map Rotation**: Ability to rotate the map for better alignment.
+- **Fit-to-Screen**: One-click zoom to fit the map to the current viewport.
+- **Enhanced UI & Touch Support**: Improved responsiveness and touch interactions for tablets and mobile devices.
+- **Offline Mode**: Includes local `vendor` assets (CSS/JS) to work without an internet connection.
+- **Local Server Integration**: A Python-based backend (`server.py`) for automatic loading and saving of maps from local directories.
+
 ## Features
-- [x] Completely Browser-based Self-Hosted Solution (superior privacy)
+- [x] Completely Browser-based Self-Hosted Solution
 - [x] Responsive Map Editing for Touchscreen Devices and Computers
 - [x] Drag and Drop Map PGM and YAML files
-- [x] Drag and Drop Keepout PGM and YAML files (suffix as `_keepout.pgm` and `_keepout.yaml`)
-- [x] Drag and Drop to Load Both File Sets
+- [x] Drag and Drop Keepout PGM and YAML files
 - [x] Uses Font Awesome for sleek UI icons
 - [x] Convenient Zoom In, Zoom Out, and Auto-Fit buttons
+- [x] Map Rotation Tool
 - [x] Invert and Auto-level options
-- [x] Paint or Erase Walls in your PGM Map
-- [x] Paint or Erase Keep-out zones in your PGM Map
+- [x] Paint or Erase Walls/Keep-out zones
 - [x] Un-Scan Area (Mark area as unknown)
-- [x] Line or Rectangle Tools for Clean Edits
-- [x] Live-Preview Overlay for Brushing or Drawing Lines/Rectangles
-- [x] Multi-level Undo and Redo Capabilities (with `CTRL+Z` and `CTRL+Y` hotkeys)
-- [x] Option to Draw Filled Rectangles
-- [x] (Hold `Spacebar` + Drag Mouse) to Pan the Map
-- [x] (Hold `Shift` + Scroll) to Zoom to Cursor
-- [x] Drag to Take Measurements Dynamically from a Map
-- [x] Download Separate Map and Keepout Mask (yaml and PGM files)
-
-Future Work:
-
-- [ ] Speed Limit Mask overlay
-- [ ] Polygon Tool
-- [ ] Grid in Meters
+- [x] Multi-level Undo and Redo Capabilities
+- [x] Measurement Tool (Meters and Feet)
+- [x] Integrated Local Saving (via Python Server)
 
 ## Usage
-You can use this tool for free by visiting: [https://gyropalm.github.io/ROS-SLAM-Map-Editor/editor.html](https://gyropalm.github.io/ROS-SLAM-Map-Editor/editor.html)
 
-*Demo SLAM maps are included in the `maps` folder.*
+### 1. Online / Static Usage
+You can still use the editor as a static tool by opening `editor.html` in any modern browser.
+*Note: In static mode, you must manually drag and drop map files and download changes.*
 
-1. Select both your `map.yaml` and `map.pgm` files. Drag and drop them in the top-left designated box.
-2. Once loaded, you should see the "YAML preview" and Debug info. You can Zoom In or Zoom Out using the bottoms on the top toolbar. You can also zoom by holding `Shift` and scrolling up.
-3. Click the `Wall` button to start painting a wall at your desired area. Change the Brush size by using the slider on the right. (Zooming in will not change your brush size)
-4. You can also use the "Line" or "Rectangle" mode to draw cleaner walls or keep-out zones. To draw a solid-filled rectangle, checkmark the `Filled` option.
-5. Select the `Erase` button to erase a wall. If you wish to mark an area as unknown, select the `Un-Scan` button.
-6. To draw a Keep-Out zone, click the `Keep-Out` button, then choose between "Freehand", "Line", or "Rectangle" mode.
-7. To measure distance of one point to another, select the "Measure Distance" mode (icon with dual arrows). Then click on point A and drag your mouse to point B to see the dimension. Both meters and feet are provided for convenience.
-8. Once editing is completed, click the `Download Map` button and you will be prompted to save your updated `map_edited.yaml` and `map_edited.pgm` files respectively. Do the same for Keep-Out zones by clicking `Download Keepout Mask`.
+### 2. Local Integrated Usage (Recommended for Robots)
+If you are running this on a robot or local machine with Python, you can use the integrated server to auto-load and save maps.
 
-## Credit and License
-This tool is created by Dominick Lee as part of GyroPalm's OmniBot V2 AMR product. By making this tool available to the open-source community, the author demonstrates commitment to the principles of collaboration and innovation that are at the heart of the open-source community and ROS2 ecosystem. If you are interested in ROS2 gesture-based robotic control, collaboration based on ROS2 robots, have a commercial use-case, or would like to support the author's work, please feel free to reach out at dlee(@)gyropalm.com
+1. **Launch the Editor**:
+   ```bash
+   ./run_editor.sh
+   ```
+   This will start a local server on port `7070` and attempt to open the editor in Chromium.
 
-If you choose to use this tool in your work or research, please refer to the MIT license file provided. Please cite the work as follows:
+2. **Server Configuration**:
+   The `server.py` is configured to look for maps in `../mini_amr/amrROS2_ws/maps`. You can modify `MAPS_DIR` in `server.py` to point to your specific maps directory.
+
+3. **Auto Loading/Saving**:
+   When using the server, you can trigger loads and saves via the API endpoints, allowing for a more seamless integration with ROS workflows.
+
+## Credits & License
+This tool is based on the [original ROS-SLAM-Map-Editor](https://github.com/GyroPalm/ROS-SLAM-Map-Editor) created by **Dominick Lee** as part of GyroPalm's OmniBot V2 AMR product.
+
+### Attribution
+If you use this tool in your work, please cite the original author:
 > Lee, Dominick. (2025). ROS SLAM Map Editor [Computer software]. GyroPalm, LLC. https://github.com/GyroPalm/ROS-SLAM-Map-Editor
+
+### License
+Modified code and original assets are provided under the **MIT License**. See the `LICENSE` file for details.
