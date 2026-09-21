@@ -898,12 +898,14 @@
     }
   }
   
-  function loadKeepoutPGM(filename, u8){
+  function loadKeepoutPGM(filename, u8, quiet){
     try{
       const kpgm = parsePGM(u8);
   
       // If we already have a base map, ensure sizes match
       if(pgm && (kpgm.width !== pgm.width || kpgm.height !== pgm.height)){
+        // Worth saying out loud even on startup: a mismatch means the active
+        // keep-out mask belongs to a different map, which nav2 will still load.
         alert(`Keepout mask size ${kpgm.width}x${kpgm.height} does not match base map ${pgm.width}x${pgm.height}. Skipping.`);
         return;
       }
@@ -939,7 +941,7 @@
       // Debug line update
       updateDebug(); 
     }catch(e){
-      alert('Keepout PGM load error: ' + e.message);
+      if(!quiet) alert('Keepout PGM load error: ' + e.message);
     }
   }
 
@@ -1169,25 +1171,32 @@
   $('#btnClose').on('click', () => fetch('/api/shutdown').catch(()=>{}));
 
   // ===== Load saved keepout overlay =====
-  $('#btnLoadKeepout').on('click', async ()=>{
-    if(!pgm){ alert('Base map not loaded yet.'); return; }
+  // `quiet` is for the startup call: a map that has never had a mask drawn on
+  // it is the normal case, and an alert there would greet every edit session.
+  async function loadSavedKeepout(quiet){
+    if(!pgm){
+      if(!quiet) alert('Base map not loaded yet.');
+      return;
+    }
     let data;
     try{
       const resp = await fetch('/api/load_keepout');
       data = await resp.json();
       if(!resp.ok || data.error){
-        alert('No saved keepout found. Save one first.');
+        if(!quiet) alert('No saved keepout found. Save one first.');
         return;
       }
     }catch(e){
-      alert('Failed to load keepout: ' + e.message);
+      if(!quiet) alert('Failed to load keepout: ' + e.message);
       return;
     }
     const bin = atob(data.pgm);
     const u8 = new Uint8Array(bin.length);
     for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    loadKeepoutPGM(data.pgm_name, u8);
-  });
+    loadKeepoutPGM(data.pgm_name, u8, quiet);
+  }
+
+  $('#btnLoadKeepout').on('click', () => loadSavedKeepout(false));
 
   // ===== Auto-load latest_map on startup =====
   async function autoLoadMap(){
@@ -1221,6 +1230,10 @@
     const u8 = new Uint8Array(bin.length);
     for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
     loadBasePGM(data.pgm_name, u8);
+    // Show the keep-out zones that are already saved for this map, so the
+    // editor opens on what the robot is actually driving with rather than on
+    // a blank mask that a stray brush stroke would then overwrite.
+    await loadSavedKeepout(true);
     requestAnimationFrame(fitZoom);
   }
   autoLoadMap();
